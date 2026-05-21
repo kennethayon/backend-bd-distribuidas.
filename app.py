@@ -2,7 +2,6 @@
 # USERNAME = 'kenneth_admin' 
 # PASSWORD = 'C0d1g0#51' 
 
-python
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pymssql
