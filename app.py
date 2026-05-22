@@ -1,29 +1,21 @@
 
 # USERNAME = 'kenneth_admin' 
 # PASSWORD = 'C0d1g0#51' 
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pymssql
+
 app = Flask(__name__)
 CORS(app) 
 
-
 # --- CONFIGURACIÓN DE TU BASE DE DATOS EN AZURE ---
-
-SERVER = 'servidorkenneth.database.windows.net' # Quítale el "tcp:" y el ",1433" al final
+SERVER = 'servidorkenneth.database.windows.net'
 DATABASE = 'Papeleria_MainDB'
 USERNAME = 'kenneth_admin' 
 PASSWORD = 'C0d1g0#51' 
 
-
 def get_db_connection():
-
-    
     return pymssql.connect(server=SERVER, user=USERNAME, password=PASSWORD, database=DATABASE)
-   
-
-
 
 # --- RUTAS DE LOGIN Y REGISTRO ---
 @app.route('/registro', methods=['POST'])
@@ -32,13 +24,15 @@ def registro():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        # Cambiamos los ? por %s
         cursor.execute("""
             INSERT INTO Usuarios (nombre, usuario, correo, contrasena)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
         """, (datos['nombre'], datos['usuario'], datos['correo'], datos['contrasena']))
         conn.commit()
         return jsonify({'success': True, 'mensaje': 'Usuario registrado exitosamente'})
     except Exception as e:
+        print("Error real de BD:", e) # Esto te ayudará a ver errores en la consola de Render
         return jsonify({'success': False, 'mensaje': 'Error, el usuario o correo ya existe'})
     finally:
         conn.close()
@@ -48,9 +42,10 @@ def login():
     datos = request.json
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Cambiamos los ? por %s
     cursor.execute("""
         SELECT id_usuario, nombre FROM Usuarios 
-        WHERE usuario = ? AND contrasena = ?
+        WHERE usuario = %s AND contrasena = %s
     """, (datos['usuario'], datos['contrasena']))
     
     usuario = cursor.fetchone()
@@ -67,10 +62,11 @@ def buscar_producto():
     termino = request.args.get('q', '')
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Cambiamos los ? por %s
     cursor.execute("""
         SELECT id_producto, codigo_barras, nombre, precio, stock 
         FROM Productos 
-        WHERE codigo_barras = ? OR nombre LIKE ?
+        WHERE codigo_barras = %s OR nombre LIKE %s
     """, (termino, f'%{termino}%'))
     
     productos = [{'id_producto': r[0], 'codigo_barras': r[1], 'nombre': r[2], 'precio': float(r[3]), 'stock': r[4]} for r in cursor.fetchall()]
@@ -91,9 +87,10 @@ def guardar_corte():
 
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Cambiamos los ? por %s
     cursor.execute("""
         INSERT INTO Cortes_Caja (b1000, b500, b200, b100, b50, b20, m10, m5, m2, m1, m05, gastos_salidas, total_calculado)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """, (datos.get('b1000',0), datos.get('b500',0), datos.get('b200',0), datos.get('b100',0), 
           datos.get('b50',0), datos.get('b20',0), datos.get('m10',0), datos.get('m5',0), 
           datos.get('m2',0), datos.get('m1',0), datos.get('m05',0), gastos, total_calculado))
