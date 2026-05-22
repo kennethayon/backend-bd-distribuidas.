@@ -62,11 +62,13 @@ def buscar_producto():
     termino = request.args.get('q', '')
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Cambiamos los ? por %s
+    
+    # El comando COLLATE Latin1_General_CI_AI fuerza a SQL a ignorar acentos y mayúsculas
     cursor.execute("""
         SELECT id_producto, codigo_barras, nombre, precio, stock 
         FROM Productos 
-        WHERE codigo_barras = %s OR nombre LIKE %s
+        WHERE codigo_barras = %s 
+        OR nombre COLLATE Latin1_General_CI_AI LIKE %s
     """, (termino, f'%{termino}%'))
     
     productos = [{'id_producto': r[0], 'codigo_barras': r[1], 'nombre': r[2], 'precio': float(r[3]), 'stock': r[4]} for r in cursor.fetchall()]
