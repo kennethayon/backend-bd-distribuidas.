@@ -99,5 +99,42 @@ def guardar_corte():
     conn.close()
     return jsonify({'mensaje': 'Corte guardado', 'total': total_calculado})
 
+@app.route('/agregar_producto', methods=['POST'])
+def agregar_producto():
+    datos = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO Productos (codigo_barras, nombre, precio, stock)
+            VALUES (%s, %s, %s, %s)
+        """, (datos['codigo_barras'], datos['nombre'], datos['precio'], datos['stock']))
+        conn.commit()
+        return jsonify({'success': True, 'mensaje': '¡Producto agregado al inventario!'})
+    except Exception as e:
+        return jsonify({'success': False, 'mensaje': f'Error al agregar: {str(e)}'})
+    finally:
+        conn.close()
+
+@app.route('/registrar_venta', methods=['POST'])
+def registrar_venta():
+    datos = request.json # Recibirá un arreglo de productos vendidos
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Por cada producto vendido, restamos la cantidad del stock en la BD
+        for item in datos['productos']:
+            cursor.execute("""
+                UPDATE Productos 
+                SET stock = stock - %s 
+                WHERE id_producto = %s
+            """, (item['cantidad'], item['id_producto']))
+        conn.commit()
+        return jsonify({'success': True, 'mensaje': 'Venta registrada. Stock actualizado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'mensaje': f'Error en la venta: {str(e)}'})
+    finally:
+        conn.close()
+        
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
