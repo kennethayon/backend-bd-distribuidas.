@@ -13,7 +13,7 @@ CORS(app)
 
 SERVER = 'servidorkenneth.database.windows.net' # Quítale el "tcp:" y el ",1433" al final
 DATABASE = 'Papeleria_MainDB'
-USERNAME = 'kenneth_adm@servidorkenneth' 
+USERNAME = 'kenneth_adm' 
 PASSWORD = 'C0d1g0#51' 
 
 
