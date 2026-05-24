@@ -175,7 +175,6 @@ def ultimas_ventas():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Traer las últimas 10 ventas ordenadas por la más reciente
         cursor.execute("""
             SELECT TOP 10 id_venta, fecha_venta, total_venta 
             FROM Ventas 
@@ -183,8 +182,12 @@ def ultimas_ventas():
         """)
         ventas = []
         for r in cursor.fetchall():
-            # Formateamos la fecha para que se vea bien en el HTML
-            fecha_str = r[1].strftime('%d/%m/%Y %H:%M') if r[1] else 'Sin fecha'
+            # FORMA SEGURA: Si tiene strftime (es fecha) lo formatea, si no, lo pasa a texto directo.
+            if hasattr(r[1], 'strftime'):
+                fecha_str = r[1].strftime('%d/%m/%Y %H:%M')
+            else:
+                fecha_str = str(r[1])
+                
             ventas.append({
                 'id_venta': r[0],
                 'fecha_venta': fecha_str,
