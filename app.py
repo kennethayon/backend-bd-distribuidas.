@@ -169,6 +169,59 @@ def registrar_venta():
         return jsonify({'success': False, 'mensaje': f'Error en base de datos: {str(e)}'})
     finally:
         conn.close()
+
+    @app.route('/ultimas_ventas', methods=['GET'])
+def ultimas_ventas():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Traer las últimas 10 ventas ordenadas por la más reciente
+        cursor.execute("""
+            SELECT TOP 10 id_venta, fecha_venta, total_venta 
+            FROM Ventas 
+            ORDER BY fecha_venta DESC
+        """)
+        ventas = []
+        for r in cursor.fetchall():
+            # Formateamos la fecha para que se vea bien en el HTML
+            fecha_str = r[1].strftime('%d/%m/%Y %H:%M') if r[1] else 'Sin fecha'
+            ventas.append({
+                'id_venta': r[0],
+                'fecha_venta': fecha_str,
+                'total_venta': float(r[2])
+            })
+        return jsonify(ventas)
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    finally:
+        conn.close()
+
+@app.route('/detalle_venta/<int:id_venta>', methods=['GET'])
+def detalle_venta(id_venta):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Traer los productos específicos de un ticket para poder reimprimirlo
+        cursor.execute("""
+            SELECT p.nombre, p.codigo_barras, d.cantidad, (d.subtotal / d.cantidad) as precio_unitario
+            FROM Detalle_Venta d
+            JOIN Productos p ON d.id_producto = p.id_producto
+            WHERE d.id_venta = %s
+        """, (id_venta,))
+        
+        detalles = []
+        for r in cursor.fetchall():
+            detalles.append({
+                'nombre': r[0],
+                'codigo_barras': r[1],
+                'cantidad': r[2],
+                'precio': float(r[3])
+            })
+        return jsonify(detalles)
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    finally:
+        conn.close()
         
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
