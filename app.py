@@ -120,21 +120,53 @@ def agregar_producto():
 
 @app.route('/registrar_venta', methods=['POST'])
 def registrar_venta():
-    datos = request.json # Recibirá un arreglo de productos vendidos
+    datos = request.json
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Por cada producto vendido, restamos la cantidad del stock en la BD
+        # 1. Calcular el total de la venta
+        total_venta = sum(item['precio'] * item['cantidad'] for item in datos['productos'])
+        
+        # 2. Insertar en la tabla principal (Ventas)
+        # Usamos GETDATE() de SQL Server para guardar la fecha y hora exacta
+        cursor.execute("""
+            INSERT INTO Ventas (fecha_venta, total_venta) 
+            OUTPUT INSERTED.id_venta
+            VALUES (GETDATE(), %s)
+        """, (total_venta,))
+        
+        # Atrapamos el número de ticket que generó la base de datos
+        id_venta = cursor.fetchone()[0]
+
+        # 3. Iterar sobre el carrito para la tabla Detalle_Venta y descontar inventario
         for item in datos['productos']:
+            subtotal = item['cantidad'] * item['precio']
+            
+            # Insertamos el registro en Detalle_Venta
+            cursor.execute("""
+                INSERT INTO Detalle_Venta (id_venta, id_producto, cantidad, subtotal)
+                VALUES (%s, %s, %s, %s)
+            """, (id_venta, item['id_producto'], item['cantidad'], subtotal))
+
+            # Restamos el stock del producto
             cursor.execute("""
                 UPDATE Productos 
                 SET stock = stock - %s 
                 WHERE id_producto = %s
             """, (item['cantidad'], item['id_producto']))
+            
+        # Confirmamos y guardamos todo en Azure
         conn.commit()
-        return jsonify({'success': True, 'mensaje': 'Venta registrada. Stock actualizado.'})
+        return jsonify({
+            'success': True, 
+            'mensaje': 'Venta registrada con éxito.', 
+            'id_venta': id_venta
+        })
+        
     except Exception as e:
-        return jsonify({'success': False, 'mensaje': f'Error en la venta: {str(e)}'})
+        # Si algo falla, cancelamos la transacción para no dejar datos a medias
+        conn.rollback()
+        return jsonify({'success': False, 'mensaje': f'Error en base de datos: {str(e)}'})
     finally:
         conn.close()
         
