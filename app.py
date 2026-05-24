@@ -170,7 +170,7 @@ def registrar_venta():
     finally:
         conn.close()
 
-   @app.route('/ultimas_ventas', methods=['GET'])
+@app.route('/ultimas_ventas', methods=['GET'])
 def ultimas_ventas():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -205,33 +205,6 @@ def detalle_venta(id_venta):
             WHERE d.id_venta = %s
         """, (id_venta,))
         detalles = [{'nombre': r[0], 'codigo_barras': r[1], 'cantidad': r[2], 'precio': float(r[3])} for r in cursor.fetchall()]
-        return jsonify(detalles)
-    except Exception as e:
-        return jsonify({'error': str(e)})
-    finally:
-        conn.close()
-
-@app.route('/detalle_venta/<int:id_venta>', methods=['GET'])
-def detalle_venta(id_venta):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        # Traer los productos específicos de un ticket para poder reimprimirlo
-        cursor.execute("""
-            SELECT p.nombre, p.codigo_barras, d.cantidad, (d.subtotal / d.cantidad) as precio_unitario
-            FROM Detalle_Venta d
-            JOIN Productos p ON d.id_producto = p.id_producto
-            WHERE d.id_venta = %s
-        """, (id_venta,))
-        
-        detalles = []
-        for r in cursor.fetchall():
-            detalles.append({
-                'nombre': r[0],
-                'codigo_barras': r[1],
-                'cantidad': r[2],
-                'precio': float(r[3])
-            })
         return jsonify(detalles)
     except Exception as e:
         return jsonify({'error': str(e)})
