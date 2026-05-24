@@ -210,6 +210,75 @@ def detalle_venta(id_venta):
         return jsonify({'error': str(e)})
     finally:
         conn.close()
+
+@app.route('/ventas_hoy', methods=['GET'])
+def ventas_hoy():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Suma las ventas que coincidan con la fecha de hoy
+        cursor.execute("""
+            SELECT ISNULL(SUM(total_venta), 0) 
+            FROM Ventas 
+            WHERE CAST(fecha_venta AS DATE) = CAST(GETDATE() AS DATE)
+        """)
+        total_hoy = cursor.fetchone()[0]
+        return jsonify({'total_hoy': float(total_hoy)})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    finally:
+        conn.close()
+
+@app.route('/ultimos_cortes', methods=['GET'])
+def ultimos_cortes():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT TOP 10 id_corte, fecha_corte, gastos_salidas, total_calculado 
+            FROM Corte_Caja 
+            ORDER BY fecha_corte DESC
+        """)
+        cortes = []
+        for r in cursor.fetchall():
+            if hasattr(r[1], 'strftime'):
+                fecha_str = r[1].strftime('%d/%m/%Y %H:%M')
+            else:
+                fecha_str = str(r[1])
+            cortes.append({
+                'id_corte': r[0],
+                'fecha_corte': fecha_str,
+                'gastos': float(r[2]),
+                'total': float(r[3])
+            })
+        return jsonify(cortes)
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    finally:
+        conn.close()
+
+@app.route('/registrar_corte', methods=['POST'])
+def registrar_corte():
+    datos = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO Corte_Caja 
+            (fecha_corte, b1000, b500, b200, b100, m10, m5, m2, m1, m05, gastos_salidas, total_calculado)
+            VALUES (GETDATE(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            datos['b1000'], datos['b500'], datos['b200'], datos['b100'], 
+            datos['m10'], datos['m5'], datos['m2'], datos['m1'], datos['m05'], 
+            datos['gastos'], datos['total_calculado']
+        ))
+        conn.commit()
+        return jsonify({'success': True, 'mensaje': 'Corte de caja registrado correctamente.'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'mensaje': str(e)})
+    finally:
+        conn.close()
         
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
