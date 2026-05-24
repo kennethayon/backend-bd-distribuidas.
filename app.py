@@ -234,9 +234,10 @@ def ultimos_cortes():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        # Aquí actualizamos el nombre a Cortes_Caja (con S)
         cursor.execute("""
             SELECT TOP 10 id_corte, fecha_corte, gastos_salidas, total_calculado 
-            FROM Corte_Caja 
+            FROM Cortes_Caja 
             ORDER BY fecha_corte DESC
         """)
         cortes = []
@@ -263,12 +264,14 @@ def registrar_corte():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        # Actualizamos nombre de tabla y agregamos b50 y b20
         cursor.execute("""
-            INSERT INTO Corte_Caja 
-            (fecha_corte, b1000, b500, b200, b100, m10, m5, m2, m1, m05, gastos_salidas, total_calculado)
-            VALUES (GETDATE(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO Cortes_Caja 
+            (fecha_corte, b1000, b500, b200, b100, b50, b20, m10, m5, m2, m1, m05, gastos_salidas, total_calculado)
+            VALUES (GETDATE(), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             datos['b1000'], datos['b500'], datos['b200'], datos['b100'], 
+            datos['b50'], datos['b20'], # Billetes nuevos
             datos['m10'], datos['m5'], datos['m2'], datos['m1'], datos['m05'], 
             datos['gastos'], datos['total_calculado']
         ))
